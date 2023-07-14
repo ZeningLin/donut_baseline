@@ -1,3 +1,5 @@
+private_*
+
 core.*
 *.bin
 .nfs*
