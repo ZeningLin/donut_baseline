@@ -46,7 +46,9 @@ def test(args):
                 prompt=f"<s_{args.task_name}><s_question>{ground_truth['gt_parses'][0]['question'].lower()}</s_question><s_answer>",
             )["predictions"][0]
         else:
-            output = pretrained_model.inference(image=sample["image"], prompt=f"<s_{args.task_name}>")["predictions"][0]
+            output = pretrained_model.inference(
+                image=sample["image"], prompt=f"<s_{args.task_name}>"
+            )["predictions"][0]
 
         if args.task_name == "rvlcdip":
             gt = ground_truth["gt_parse"]
@@ -57,6 +59,9 @@ def test(args):
             gt = ground_truth["gt_parses"]
             answers = set([qa_parse["answer"] for qa_parse in gt])
             score = float(output["answer"] in answers)
+        elif args.task_name == "private_funsd":
+            gt = ground_truth["gt_parse"]
+            score = -1
         else:
             gt = ground_truth["gt_parse"]
             score = evaluator.cal_acc(output, gt)
@@ -69,7 +74,9 @@ def test(args):
     scores = {
         "ted_accuracies": accs,
         "ted_accuracy": np.mean(accs),
-        "f1_accuracy": evaluator.cal_f1(predictions, ground_truths),
+        "f1_accuracy": evaluator.cal_f1_funsd(predictions, ground_truths)
+        if args.task_name == "private_funsd"
+        else evaluator.cal_f1(predictions, ground_truths),
     }
     print(
         f"Total number of samples: {len(accs)}, Tree Edit Distance (TED) based accuracy score: {scores['ted_accuracy']}, F1 accuracy score: {scores['f1_accuracy']}"

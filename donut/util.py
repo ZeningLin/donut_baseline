@@ -58,7 +58,9 @@ class DonutDataset(Dataset):
         self.split = split
         self.ignore_id = ignore_id
         self.task_start_token = task_start_token
-        self.prompt_end_token = prompt_end_token if prompt_end_token else task_start_token
+        self.prompt_end_token = (
+            prompt_end_token if prompt_end_token else task_start_token
+        )
         self.sort_json_key = sort_json_key
 
         self.dataset = load_dataset(dataset_name_or_path, split=self.split)
@@ -67,11 +69,15 @@ class DonutDataset(Dataset):
         self.gt_token_sequences = []
         for sample in self.dataset:
             ground_truth = json.loads(sample["ground_truth"])
-            if "gt_parses" in ground_truth:  # when multiple ground truths are available, e.g., docvqa
+            if (
+                "gt_parses" in ground_truth
+            ):  # when multiple ground truths are available, e.g., docvqa
                 assert isinstance(ground_truth["gt_parses"], list)
                 gt_jsons = ground_truth["gt_parses"]
             else:
-                assert "gt_parse" in ground_truth and isinstance(ground_truth["gt_parse"], dict)
+                assert "gt_parse" in ground_truth and isinstance(
+                    ground_truth["gt_parse"], dict
+                )
                 gt_jsons = [ground_truth["gt_parse"]]
 
             self.gt_token_sequences.append(
@@ -87,8 +93,14 @@ class DonutDataset(Dataset):
                 ]
             )
 
-        self.donut_model.decoder.add_special_tokens([self.task_start_token, self.prompt_end_token])
-        self.prompt_end_token_id = self.donut_model.decoder.tokenizer.convert_tokens_to_ids(self.prompt_end_token)
+        self.donut_model.decoder.add_special_tokens(
+            [self.task_start_token, self.prompt_end_token]
+        )
+        self.prompt_end_token_id = (
+            self.donut_model.decoder.tokenizer.convert_tokens_to_ids(
+                self.prompt_end_token
+            )
+        )
 
     def __len__(self) -> int:
         return self.dataset_length
@@ -106,10 +118,14 @@ class DonutDataset(Dataset):
         sample = self.dataset[idx]
 
         # input_tensor
-        input_tensor = self.donut_model.encoder.prepare_input(sample["image"], random_padding=self.split == "train")
+        input_tensor = self.donut_model.encoder.prepare_input(
+            sample["image"], random_padding=self.split == "train"
+        )
 
         # input_ids
-        processed_parse = random.choice(self.gt_token_sequences[idx])  # can be more than one, e.g., DocVQA Task 1
+        processed_parse = random.choice(
+            self.gt_token_sequences[idx]
+        )  # can be more than one, e.g., DocVQA Task 1
         input_ids = self.donut_model.decoder.tokenizer(
             processed_parse,
             add_special_tokens=False,
@@ -188,7 +204,9 @@ class JSONParseEvaluator:
         label1_leaf = "<leaf>" in label1
         label2_leaf = "<leaf>" in label2
         if label1_leaf == True and label2_leaf == True:
-            return edit_distance(label1.replace("<leaf>", ""), label2.replace("<leaf>", ""))
+            return edit_distance(
+                label1.replace("<leaf>", ""), label2.replace("<leaf>", "")
+            )
         elif label1_leaf == False and label2_leaf == True:
             return 1 + len(label2.replace("<leaf>", ""))
         elif label1_leaf == True and label2_leaf == False:
@@ -233,7 +251,11 @@ class JSONParseEvaluator:
                     if item:
                         new_data.append(item)
             else:
-                new_data = [str(item).strip() for item in data if type(item) in {str, int, float} and str(item).strip()]
+                new_data = [
+                    str(item).strip()
+                    for item in data
+                    if type(item) in {str, int, float} and str(item).strip()
+                ]
         else:
             new_data = [str(data).strip()]
 
@@ -245,7 +267,24 @@ class JSONParseEvaluator:
         """
         total_tp, total_fn_or_fp = 0, 0
         for pred, answer in zip(preds, answers):
-            pred, answer = self.flatten(self.normalize_dict(pred)), self.flatten(self.normalize_dict(answer))
+            pred, answer = self.flatten(self.normalize_dict(pred)), self.flatten(
+                self.normalize_dict(answer)
+            )
+            for field in pred:
+                if field in answer:
+                    total_tp += 1
+                    answer.remove(field)
+                else:
+                    total_fn_or_fp += 1
+            total_fn_or_fp += len(answer)
+        return total_tp / (total_tp + total_fn_or_fp / 2)
+
+    def cal_f1_funsd(self, preds: List[Dict], answers: List[Dict]):
+        total_tp, total_fn_or_fp = 0, 0
+        for pred, answer in zip(preds, answers):
+            answer = answer["root"]
+            if "root" in pred:
+                pred = pred["root"]
             for field in pred:
                 if field in answer:
                     total_tp += 1
