@@ -281,10 +281,13 @@ class JSONParseEvaluator:
 
     def cal_f1_funsd(self, preds: List[Dict], answers: List[Dict]):
         total_tp, total_fn_or_fp = 0, 0
+        num_pred, num_gt = 0, 0
         for pred, answer in zip(preds, answers):
             answer = answer["root"]
+            num_gt += len(answer)
             if "root" in pred:
                 pred = pred["root"]
+            num_pred += len(pred)
             for field in pred:
                 if field in answer:
                     total_tp += 1
@@ -292,7 +295,11 @@ class JSONParseEvaluator:
                 else:
                     total_fn_or_fp += 1
             total_fn_or_fp += len(answer)
-        return total_tp / (total_tp + total_fn_or_fp / 2)
+        return (
+            total_tp / num_pred,
+            total_tp / num_gt,
+            total_tp / (total_tp + total_fn_or_fp / 2),
+        )
 
     def construct_tree_from_dict(self, data: Union[Dict, List], node_name: str = None):
         """
