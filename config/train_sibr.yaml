@@ -1,7 +1,7 @@
 resume_from_checkpoint_path: null # only used for resume_from_checkpoint option in PL
 result_path: "./result"
 pretrained_model_name_or_path: "naver-clova-ix/donut-base" # loading a pre-trained model (from moldehub or path)
-dataset_name_or_paths: ["private_funsd"] # loading datasets (from moldehub or path)
+dataset_name_or_paths: ["private_sibr"] # loading datasets (from moldehub or path)
 sort_json_key: False
 train_batch_sizes: [4]
 val_batch_sizes: [1]
@@ -11,8 +11,8 @@ align_long_axis: False
 num_nodes: 1
 seed: 2022
 lr: 1.5e-5
-warmup_steps: 300 # 800/8*30/10, 10%
-num_training_samples_per_epoch: 149
+warmup_steps: 2250
+num_training_samples_per_epoch: 600
 max_epochs: 300
 max_steps: -1
 num_workers: 8
