@@ -4,6 +4,8 @@ Copyright (c) 2022-present NAVER Corp.
 MIT License
 """
 import json
+import re
+import string
 import os
 import random
 from collections import defaultdict
@@ -279,14 +281,44 @@ class JSONParseEvaluator:
             total_fn_or_fp += len(answer)
         return total_tp / (total_tp + total_fn_or_fp / 2)
 
-    def cal_f1_funsd(self, preds: List[Dict], answers: List[Dict]):
+    def remove_space_punc(self, text):
+        # remove space before and after punctuation in the given string
+        text = re.sub(r"\s([?.!,:;\-&%$#@^*/()])", r"\1", text)
+        text = re.sub(r"([?.!,:;\-&%$#@^*/()])\s", r"\1", text)
+        text = re.sub(r"\s+", " ", text)
+
+        return text
+
+    def cal_f1_pe(self, preds: List[Dict], answers: List[Dict]):
         total_tp, total_fn_or_fp = 0, 0
         num_pred, num_gt = 0, 0
         for pred, answer in zip(preds, answers):
             answer = answer["root"]
+            answer_ = []
+            for answer_info in answer:
+                reformatted = {}
+                for k, v in answer_info.items():
+                    reformatted[k] = self.remove_space_punc(v).upper()
+                answer_.append(reformatted)
+            answer = answer_
             num_gt += len(answer)
+
             if "root" in pred:
                 pred = pred["root"]
+            pred_ = []
+            if isinstance(pred, dict):
+                reformatted = {}
+                for k, v in pred.items():
+                    reformatted[k] = self.remove_space_punc(v).upper()
+                pred_.append(reformatted)
+            elif isinstance(pred, list):
+                for pred_info in pred:
+                    reformatted = {}
+                    for k, v in pred_info.items():
+                        reformatted[k] = self.remove_space_punc(v).upper()
+                    pred_.append(reformatted)
+            pred = pred_
+
             num_pred += len(pred)
             for field in pred:
                 if field in answer:

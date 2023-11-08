@@ -59,7 +59,7 @@ def test(args):
             gt = ground_truth["gt_parses"]
             answers = set([qa_parse["answer"] for qa_parse in gt])
             score = float(output["answer"] in answers)
-        elif args.task_name == "private_funsd":
+        elif "rfund" in args.task_name or args.task_name == "pair_extraction":
             gt = ground_truth["gt_parse"]
             score = -1
         else:
@@ -74,8 +74,8 @@ def test(args):
     scores = {
         "ted_accuracies": accs,
         "ted_accuracy": np.mean(accs),
-        "f1_accuracy": evaluator.cal_f1_funsd(predictions, ground_truths)
-        if args.task_name == "private_funsd"
+        "f1_accuracy": evaluator.cal_f1_pe(predictions, ground_truths)
+        if (args.task_name == "pair_extraction" or "rfund" in args.task_name)
         else evaluator.cal_f1(predictions, ground_truths),
     }
     print(
